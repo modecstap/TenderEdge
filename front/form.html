@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal Form</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="form">
+        <form action="cmipip.php" method="post">
+            <label for="vendor">Вендрер:</label>
+            <select id="vendor" name="vendor">
+                <option value="">Выберите...</option>
+                <option value="Globus">Globus</option>
+                <option value="МТС">МТС</option>
+                <option value="Связной">Связной</option>
+                <option value="Эльдорадо">Эльдорадо</option>
+                <option value="Билайн">Билайн</option>
+                
+            </select>
+
+            <label for="functionality">Функционал:</label>
+            <select id="functionality" name="functionality">
+                <option value="">Выберите...</option>
+                <option value="Выше среднего">Выше среднего</option>
+                <option value="Средняя">Средняя</option>
+                <option value="Ниже среднего">Ниже среднего</option>
+            </select>
+
+            <label for="repairability">Ремонтопригодность:</label>
+            <select id="repairability" name="repairability">
+                <option value="">Выберите...</option>
+                <option value="Выше среднего">Выше среднего</option>
+                <option value="Средняя">Средняя</option>
+                <option value="Ниже среднего">Ниже среднего</option>
+            </select>
+
+            <label for="parts-support">Поддержка по запчастям:</label>
+            <select id="parts-support" name="parts-support">
+                <option value="">Выберите...</option>
+                <option value="Выше среднего">Выше среднего</option>
+                <option value="Средняя">Средняя</option>
+                <option value="Ниже среднего">Ниже среднего</option>
+            </select>
+
+            <label for="performance">Производительность:</label>
+            <select id="performance" name="performance">
+                <option value="">Выберите...</option>
+                <option value="Выше среднего">Выше среднего</option>
+                <option value="Средняя">Средняя</option>
+                <option value="Ниже среднего">Ниже среднего</option>
+            </select>
+
+            <label for="efficiency">Эффективность</label>
+            <select id="efficiency" name="efficiency">
+                <option value="">Выберите...</option>
+                <option value="Выше среднего">Выше среднего</option>
+                <option value="Средняя">Средняя</option>
+                <option value="Ниже среднего">Ниже среднего</option>
+            </select>
+
+            <!-- Input fields -->
+            <label for="device-cost">Стоимость устройства:</label>
+            <input type="text" id="device-cost" name="device-cost" placeholder="Введите стоимость устройства">
+
+            <label for="consumables-cost">Стоимость расходников:</label>
+            <input type="text" id="consumables-cost" name="consumables-cost" placeholder="Введите стоимость расходников">
+
+            <label for="supplie_cost">Стоимость запчастей</label>
+            <input type="text", id="supplie_cost", name="supplie_cost", placeholder="Введите стоимость поставки">
+
+            <label for="manufacturer">Производитель:</label>
+            <select id="manufacturer" name="manufacturer">
+                <option value="">Выберите...</option>
+                <option value="Япония">Япония</option>
+                <option value="США">США</option>
+                <option value="Южная Корея">Южная Корея</option>
+            </select>
+            <!-- Submit button -->
+            <button type="submit">Отправить</button>
+        </form>
+    </div>
+    <div class="table">
+        <h1>Таблица данных устройства</h1>
+        <div class="table-wrapper">
+            <table class="fl-table" id="dataTable">
+                <thead>
+                    <tr>
+                        <th>Имя</th>
+                        <th>Производитель</th>
+                        <th>Функциональность</th>
+                        <th>Стоимость устройства</th>
+                        <th>Стоимость расходников</th>
+                        <th>Стоимость запчастей</th>
+                        <th>Ремонтопригодность</th>
+                        <th>Поддержка запчастей</th>
+                        <th>Производитель устройства</th>
+                        <th>Эффективность</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Строки с данными будут добавлены сюда -->
+                </tbody>
+            </table>
+        </div>
+        <script src="app.js"></script>
+    </div>
+</body>
+</html>
