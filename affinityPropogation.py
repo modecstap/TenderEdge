@@ -1,80 +1,112 @@
 import numpy as np
-from numpy import array
-from scipy.spatial.distance import cdist
-
-from tqdm import tqdm
+from sklearn.metrics import euclidean_distances
 
 
-class AffinityPropagation:
-    def __init__(self, vectors: array):
-        self.matrixSize = vectors.shape[0]
+class AffinityPropagationClustering:
+    def __init__(self, damping=0.5, max_iter=200, convergence_iter=15, preference=None, random_state=0):
+        self.damping = damping
+        self.max_iter = max_iter
+        self.convergence_iter = convergence_iter
+        self.preference = preference
+        self.random_state = random_state
 
-        self.S = cdist(vectors.tolist(), vectors.tolist())
-        self.R = np.zeros([self.matrixSize, self.matrixSize])
-        self.A = np.zeros([self.matrixSize, self.matrixSize])
+    @staticmethod
+    def _affinity_propagation_inner(similarity_matrix, preference, convergence_iter, max_iter,
+                                    damping, random_state):
+        rng = np.random.RandomState(random_state)
+        n_samples = similarity_matrix.shape[0]
+        samples_indexes = np.arange(n_samples)
 
-    def affinity_propagation(self, max_iter=200, conv_iter=15, damping=0.5):
-        """
-        Реализация алгоритма Affinity Propagation.
+        # place preference on the diagonal of similarity matrix
+        np.fill_diagonal(similarity_matrix, preference)
 
-        Параметры:
-        - S: матрица сходства (размером NxN, где N - количество элементов).
-        - max_iter: максимальное количество итераций.
-        - conv_iter: количество итераций для сходимости.
-        - damping: коэффициент затухания (между 0.5 и 1).
+        # initialize availability and responsibility matrix
+        availability_matrix = np.zeros((n_samples, n_samples))
+        responsibility_matrix = np.zeros((n_samples, n_samples))
+        exemplars_convergence_matrix = np.zeros((n_samples, convergence_iter))
 
-        Возвращает:
-        - labels: метки кластеров для каждого элемента.
-        """
-        self.__damping = damping
-        # Основной цикл
-        for m in tqdm(range(max_iter)):
-            # Обновление матрицы ответственности
-            self.__Responsibility_Calc()
+        for iter in range(max_iter):
+            temp_matrix = availability_matrix + similarity_matrix  # compute responsibilities
+            max_indexes = np.argmax(temp_matrix, axis=1)
+            max_values = np.max(temp_matrix, axis=1)
+            temp_matrix[samples_indexes, max_indexes] = -np.inf
+            second_max_values = np.max(temp_matrix, axis=1)
 
-            # Обновление матрицы доступности
-            self.__Availability_Calc()
+            # temp_matrix = new_responsibility_matrix
+            np.subtract(similarity_matrix, max_values[:, None], temp_matrix)
+            max_responsibility = similarity_matrix[samples_indexes, max_indexes] - second_max_values
+            temp_matrix[samples_indexes, max_indexes] = max_responsibility
 
-            # Проверка на сходимость
-            if m > conv_iter and np.allclose(self.R, self.__R_old) and np.allclose(self.A, self.__A_old):
-                break
+            # damping
+            temp_matrix *= 1 - damping
+            responsibility_matrix *= damping
+            responsibility_matrix += temp_matrix
 
-        # Вычисление итоговых меток кластеров
-        E = self.R + self.A
-        listIndexMaxItem = np.argmax(E, axis=1)
-        labels = np.unique(listIndexMaxItem, return_inverse=True)[1]
+            # temp_matrix = Rp; compute availabilities
+            np.maximum(responsibility_matrix, 0, temp_matrix)
+            np.fill_diagonal(temp_matrix, np.diag(responsibility_matrix))
 
-        return labels
+            # temp_matrix = -new_availability_matrix
+            temp_matrix -= np.sum(temp_matrix, axis=0)
+            diag_availability_matrix = np.diag(temp_matrix).copy()
+            temp_matrix.clip(0, np.inf, temp_matrix)
+            np.fill_diagonal(temp_matrix, diag_availability_matrix)
 
-    def __Responsibility_Calc(self):
-        self.__R_old = self.R.copy()
-        AS = self.A + self.S
+            # damping
+            temp_matrix *= 1 - damping
+            availability_matrix *= damping
+            availability_matrix -= temp_matrix
 
-        listIndexMaxItem = np.argmax(AS, axis=1)
-        listMaxItem = np.max(AS, axis=1)
+            # check for convergence
+            exemplar = (np.diag(availability_matrix) + np.diag(responsibility_matrix)) > 0
+            exemplars_convergence_matrix[:, iter % convergence_iter] = exemplar
+            n_exemplars = np.sum(exemplar, axis=0)
 
-        AS[range(self.matrixSize), listIndexMaxItem] = -np.inf
+            if iter >= convergence_iter:
+                exemplars_sum = np.sum(exemplars_convergence_matrix, axis=1)
+                unconverged = np.sum((exemplars_sum == convergence_iter) +
+                                     (exemplars_sum == 0)) != n_samples
 
-        listSecondMaxItem = np.max(AS, axis=1)
+                if (not unconverged and (n_exemplars > 0)) or (iter == max_iter):
+                    break
 
-        self.R = self.S - listMaxItem
-        self.R[range(self.matrixSize), listIndexMaxItem
-        ] = self.S[range(self.matrixSize), listIndexMaxItem] - listSecondMaxItem
+        exemplar_indixes = np.flatnonzero(exemplar)
+        n_exemplars = exemplar_indixes.size  # number of detected clusters
 
-        self.R = (1 - self.__damping) * self.R + self.__damping * self.__R_old
+        if n_exemplars > 0:
+            cluster_indices = np.argmax(similarity_matrix[:, exemplar_indixes], axis=1)
+            cluster_indices[exemplar_indixes] = np.arange(n_exemplars)  # Identify clusters
 
-    def __Availability_Calc(self):
-        self.__A_old = self.A.copy()
-        Rp = np.maximum(self.R, 0)
-        np.fill_diagonal(Rp, self.R.diagonal())
-        self.A = np.sum(Rp, axis=0) - Rp
-        dA = np.diag(self.A)
-        self.A = np.minimum(self.A, 0)
-        self.A[range(self.matrixSize), range(self.matrixSize)] = dA
-        self.A = (1 - self.__damping) * self.A + self.__damping * self.__A_old
+            # refine the final set of exemplars and clusters and return results
+            for k in range(n_exemplars):
+                cluster_members = np.where(cluster_indices == k)[0]
+                best_k = np.argmax(np.sum(similarity_matrix[cluster_members[:, np.newaxis],
+                                                            cluster_members], axis=0))
+                exemplar_indixes[k] = cluster_members[best_k]
 
+            cluster_indices = np.argmax(similarity_matrix[:, exemplar_indixes], axis=1)
+            cluster_indices[exemplar_indixes] = np.arange(n_exemplars)
+            labels = exemplar_indixes[cluster_indices]
 
-if __name__ == '__main__':
-    x = np.random.rand(500, 40)
-    AP = AffinityPropagation(x)
-    print(AP.affinity_propagation())
+            # Reduce labels to a sorted, gapless, list
+            cluster_centers_indices = np.unique(labels)
+            labels = np.searchsorted(cluster_centers_indices, labels)
+        else:
+            cluster_centers_indices = []
+            labels = np.array([-1] * n_samples)
+
+        return cluster_centers_indices, labels
+
+    def fit_predict(self, X):
+        self.affinity_matrix_ = -euclidean_distances(X, squared=True)
+
+        if self.preference is None:
+            self.preference = np.median(self.affinity_matrix_)
+
+        params = (self.affinity_matrix_, self.preference, self.convergence_iter, self.max_iter,
+                  self.damping, self.random_state)
+
+        self.cluster_centers_indices_, self.labels_ = self._affinity_propagation_inner(*params)
+        self.cluster_centers_ = X[self.cluster_centers_indices_]
+
+        return self.labels_
