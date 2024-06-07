@@ -1,5 +1,7 @@
 import numpy as np
 from sklearn.metrics import euclidean_distances
+
+
 class AffinityPropagationClustering:
     def __init__(self, damping=0.5, max_iter=200, convergence_iter=15, preference=None, random_state=0):
         self.damping = damping
@@ -10,7 +12,7 @@ class AffinityPropagationClustering:
 
     @staticmethod
     def _affinity_propagation_inner(similarity_matrix, preference, convergence_iter, max_iter,
-                                   damping, random_state):
+                                    damping, random_state):
         rng = np.random.RandomState(random_state)
         n_samples = similarity_matrix.shape[0]
         samples_indexes = np.arange(n_samples)
@@ -24,7 +26,7 @@ class AffinityPropagationClustering:
         exemplars_convergence_matrix = np.zeros((n_samples, convergence_iter))
 
         for iter in range(max_iter):
-            temp_matrix = availability_matrix + similarity_matrix   # compute responsibilities
+            temp_matrix = availability_matrix + similarity_matrix  # compute responsibilities
             max_indexes = np.argmax(temp_matrix, axis=1)
             max_values = np.max(temp_matrix, axis=1)
             temp_matrix[samples_indexes, max_indexes] = -np.inf
