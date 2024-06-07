@@ -3,6 +3,12 @@
 TenderEdge is a project aimed at providing a comprehensive platform for predictive modeling and analysis. The repository contains various modules and scripts designed to facilitate the prediction of items using machine learning techniques.
 
 # Installation
+Install python:
+```
+sudo apt-get update
+sudo apt-get install python3
+sudo apt-get install python3-pip
+```
 
 To install the required dependencies, run:
 
