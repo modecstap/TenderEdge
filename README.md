@@ -29,11 +29,6 @@ pip3 install pandas openpyxl psycopg2-binary sqlalchemy
 
 sudo service postgresql start
 
-
-brew install postgresql
-
-brew services start postgresql
-
 pip3 install pandas openpyxl psycopg2-binary sqlalchemy
 
 DB_NAME="neural_net"
